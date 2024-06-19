@@ -3,21 +3,16 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type model struct {
-	choices  []string
-	cursor   int
-	selected map[int]struct{}
-}
+var frameworks = []string{"AWS SAM", "Serverless"}
 
-func initialModel() model {
-	return model{
-		choices:  []string{"Buy carrots", "Buy celery", "Buy kohlrabi"},
-		selected: make(map[int]struct{}),
-	}
+type model struct {
+	choice string
+	cursor int
 }
 
 func (m model) Init() tea.Cmd {
@@ -31,51 +26,50 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
+			m.cursor--
+			if m.cursor < 0 {
+				m.cursor = len(frameworks) - 1
 			}
 		case "down", "j":
-			if m.cursor < len(m.choices)-1 {
-				m.cursor++
+			m.cursor++
+			if m.cursor >= len(frameworks) {
+				m.cursor = 0
 			}
 		case "enter", " ":
-			_, ok := m.selected[m.cursor]
-			if ok {
-				delete(m.selected, m.cursor)
-			} else {
-				m.selected[m.cursor] = struct{}{}
-			}
+			m.choice = frameworks[m.cursor]
+			return m, tea.Quit
 		}
 	}
 	return m, nil
 }
 
 func (m model) View() string {
-	s := "What should we buy at the market?\n\n"
+	s := strings.Builder{}
+	s.WriteString("What framework would you like to use?\n\n")
 
-	for i, choice := range m.choices {
-		cursor := " "
+	for i := 0; i < len(frameworks); i++ {
 		if m.cursor == i {
-			cursor = ">"
+			s.WriteString("(•) ")
+		} else {
+			s.WriteString("( ) ")
 		}
-
-		checked := " "
-		if _, ok := m.selected[i]; ok {
-			checked = "x"
-		}
-
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
+		s.WriteString(frameworks[i])
+		s.WriteString("\n")
 	}
+	s.WriteString("\nPress q to quit.\n")
 
-	s += "\nPress q to quit.\n"
-
-	return s
+	return s.String()
 }
 
 func main() {
-	p := tea.NewProgram(initialModel())
-	if _, err := p.Run(); err != nil {
+	p := tea.NewProgram(model{})
+	m, err := p.Run()
+	if err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)
+	}
+
+	if m, ok := m.(model); ok && m.choice != "" {
+		fmt.Printf("You chose: %s\n", m.choice)
 	}
 }
