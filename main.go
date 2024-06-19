@@ -3,75 +3,68 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 )
 
-var frameworks = []string{"AWS SAM", "Serverless"}
-
-type model struct {
-	choice string
-	cursor int
+type Model struct {
+	form *huh.Form
 }
 
-func (m model) Init() tea.Cmd {
-	return nil
+func NewModel() Model {
+	return Model{
+		form: huh.NewForm(
+			huh.NewGroup(
+				huh.NewNote().
+					Title("Stratus").
+					Description("Stratus simplifies serverless app development on AWS.\n\n").
+					Next(true).
+					NextLabel("Start"),
+			),
+			huh.NewGroup(
+				huh.NewSelect[string]().
+					Key("resource").
+					Options(huh.NewOptions("Lambda", "API Gateway", "DynamoDB")...).
+					Title("What serverless resource would you like to create?"),
+			),
+		),
+	}
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Init() tea.Cmd {
+	return m.form.Init()
+}
+
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
-		case "up", "k":
-			m.cursor--
-			if m.cursor < 0 {
-				m.cursor = len(frameworks) - 1
-			}
-		case "down", "j":
-			m.cursor++
-			if m.cursor >= len(frameworks) {
-				m.cursor = 0
-			}
-		case "enter", " ":
-			m.choice = frameworks[m.cursor]
-			return m, tea.Quit
 		}
 	}
-	return m, nil
+	form, cmd := m.form.Update(msg)
+	if f, ok := form.(*huh.Form); ok {
+		m.form = f
+	}
+	return m, cmd
 }
 
-func (m model) View() string {
-	s := strings.Builder{}
-	s.WriteString("Welcome to Stratus!\n\n")
-	s.WriteString("Stratus simplifies serverless app development on AWS.\n\n")
-	s.WriteString("What framework would you like to use?\n\n")
-
-	for i := 0; i < len(frameworks); i++ {
-		if m.cursor == i {
-			s.WriteString("(•) ")
-		} else {
-			s.WriteString("( ) ")
-		}
-		s.WriteString(frameworks[i])
-		s.WriteString("\n")
+func (m Model) View() string {
+	if m.form.State == huh.StateCompleted {
+		resource := m.form.GetString("resource")
+		return fmt.Sprintf("You chose: %s\n", resource)
 	}
-	s.WriteString("\nPress q to quit.\n")
 
-	return s.String()
+	return m.form.View()
 }
 
 func main() {
-	p := tea.NewProgram(model{})
-	m, err := p.Run()
+	p := tea.NewProgram(NewModel())
+	_, err := p.Run()
 	if err != nil {
 		fmt.Printf("Shit! It broke: %v", err)
 		os.Exit(1)
-	}
-
-	if m, ok := m.(model); ok && m.choice != "" {
-		fmt.Printf("You chose: %s\n", m.choice)
 	}
 }
