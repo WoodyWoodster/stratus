@@ -101,18 +101,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() string {
 	if m.form.State == huh.StateCompleted {
-		resource := m.form.GetString("resource")
-		name := m.form.GetString("name")
-		s := fmt.Sprintf("Creating %s named %s...\n", resource, name)
-		if resource == "Lambda" {
-			runtime := m.form.GetString("runtime")
-			s += fmt.Sprintf("Using runtime %s...\n", runtime)
-		}
-		s += "Done!"
-		return s
+		return createResource(m)
 	}
 
 	return m.form.View()
+}
+
+func createResource(m Model) string {
+	architecture := m.form.GetString("architecture")
+	name := m.form.GetString("name")
+	resource := m.form.GetString("resource")
+	runtime := m.form.GetString("runtime")
+	s := fmt.Sprintf("Creating %s named %s\n", resource, name)
+
+	if resource == "Lambda" {
+		s += fmt.Sprintf("Using runtime %s on %s\n", runtime, architecture)
+	}
+	s += "Done!"
+	return s
 }
 
 func main() {
