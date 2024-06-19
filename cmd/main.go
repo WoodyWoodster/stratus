@@ -38,7 +38,15 @@ func NewModel() Model {
 				huh.NewInput().
 					Key("name").
 					Title("Resource name").
-					Value(&name),
+					Value(&name).
+					Validate(
+						func(s string) error {
+							if s == "" {
+								return fmt.Errorf("resource name is required")
+							}
+							return nil
+						},
+					),
 			).WithHideFunc(func() bool {
 				return resource == ""
 			}),
