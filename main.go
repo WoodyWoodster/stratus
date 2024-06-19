@@ -13,6 +13,9 @@ type Model struct {
 }
 
 func NewModel() Model {
+	var resource string
+	var name string
+
 	return Model{
 		form: huh.NewForm(
 			huh.NewGroup(
@@ -25,9 +28,18 @@ func NewModel() Model {
 			huh.NewGroup(
 				huh.NewSelect[string]().
 					Key("resource").
+					Value(&resource).
 					Options(huh.NewOptions("Lambda", "API Gateway", "DynamoDB")...).
 					Title("What serverless resource would you like to create?"),
 			),
+			huh.NewGroup(
+				huh.NewInput().
+					Key("name").
+					Title("Resource name").
+					Value(&name),
+			).WithHideFunc(func() bool {
+				return resource == ""
+			}),
 		),
 	}
 }
@@ -54,7 +66,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) View() string {
 	if m.form.State == huh.StateCompleted {
 		resource := m.form.GetString("resource")
-		return fmt.Sprintf("You chose: %s\n", resource)
+		name := m.form.GetString("name")
+		s := fmt.Sprintf("Creating %s named %s...\n", resource, name)
+		s += "Done!"
+		return s
 	}
 
 	return m.form.View()
