@@ -45,6 +45,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	s := strings.Builder{}
+	s.WriteString("Welcome to Stratus!\n\n")
+	s.WriteString("Stratus simplifies serverless app development on AWS.\n\n")
 	s.WriteString("What framework would you like to use?\n\n")
 
 	for i := 0; i < len(frameworks); i++ {
@@ -65,7 +67,7 @@ func main() {
 	p := tea.NewProgram(model{})
 	m, err := p.Run()
 	if err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
+		fmt.Printf("Shit! It broke: %v", err)
 		os.Exit(1)
 	}
 
