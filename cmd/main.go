@@ -116,9 +116,20 @@ func createResource(m Model) string {
 
 	if resource == "Lambda" {
 		s += fmt.Sprintf("Using runtime %s on %s\n", runtime, architecture)
+		templateExist := doesTemplateExist()
+		if templateExist {
+			s += "Using existing template.yaml\n"
+		} else {
+			s += "Creating new template.yaml\n"
+		}
 	}
 	s += "Done!"
 	return s
+}
+
+func doesTemplateExist() bool {
+	_, err := os.Open("template.yaml")
+	return !os.IsNotExist(err)
 }
 
 func main() {
