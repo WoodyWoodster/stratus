@@ -121,6 +121,11 @@ func createResource(m Model) string {
 			s += "Using existing template.yaml\n"
 		} else {
 			s += "Creating new template.yaml\n"
+			err := createTemplate()
+			if err != nil {
+				s += fmt.Sprintf("Error creating template: %v\n", err)
+				return s
+			}
 		}
 	}
 	s += "Done!"
@@ -130,6 +135,21 @@ func createResource(m Model) string {
 func doesTemplateExist() bool {
 	_, err := os.Open("template.yaml")
 	return !os.IsNotExist(err)
+}
+
+func createTemplate() error {
+	f, err := os.Create("template.yaml")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString("AWSTemplateFormatVersion: '2010-09-09'\n")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func main() {
