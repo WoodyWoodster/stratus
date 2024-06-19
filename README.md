@@ -1,2 +1,3 @@
 # stratus
-Stratus is a CLI tool to make building serverless/cloud applications easier
+
+Stratus simplifies serverless app development on AWS.
