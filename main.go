@@ -13,8 +13,9 @@ type Model struct {
 }
 
 func NewModel() Model {
-	var resource string
 	var name string
+	var resource string
+	var runtime string
 
 	return Model{
 		form: huh.NewForm(
@@ -39,6 +40,25 @@ func NewModel() Model {
 					Value(&name),
 			).WithHideFunc(func() bool {
 				return resource == ""
+			}),
+			huh.NewGroup(
+				huh.NewSelect[string]().
+					Key("runtime").
+					Value(&runtime).
+					Options(huh.NewOptions(
+						"nodejs20.x",
+						"nodejs18.x",
+						"nodejs16.x",
+						"python3.12",
+						"python3.11",
+						"python3.10",
+						"python3.9",
+						"python3.8",
+						"provided.al2023",
+					)...).
+					Title("What runtime would you like to use?"),
+			).WithHideFunc(func() bool {
+				return resource != "Lambda"
 			}),
 		),
 	}
@@ -68,6 +88,10 @@ func (m Model) View() string {
 		resource := m.form.GetString("resource")
 		name := m.form.GetString("name")
 		s := fmt.Sprintf("Creating %s named %s...\n", resource, name)
+		if resource == "Lambda" {
+			runtime := m.form.GetString("runtime")
+			s += fmt.Sprintf("Using runtime %s...\n", runtime)
+		}
 		s += "Done!"
 		return s
 	}
