@@ -13,6 +13,7 @@ type Model struct {
 }
 
 func NewModel() Model {
+	var architecture string
 	var name string
 	var resource string
 	var runtime string
@@ -41,6 +42,13 @@ func NewModel() Model {
 			).WithHideFunc(func() bool {
 				return resource == ""
 			}),
+			huh.NewGroup(
+				huh.NewSelect[string]().
+					Key("architecture").
+					Value(&architecture).
+					Options(huh.NewOptions("x86_64", "arm64")...).
+					Title("What architecture would you like to use?"),
+			),
 			huh.NewGroup(
 				huh.NewSelect[string]().
 					Key("runtime").
