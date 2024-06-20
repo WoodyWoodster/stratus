@@ -76,7 +76,7 @@ func NewModel() Model {
 			).WithHideFunc(func() bool {
 				return resource != "Lambda"
 			}),
-		),
+		).WithProgramOptions(tea.WithAltScreen()),
 	}
 }
 
@@ -95,6 +95,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	form, cmd := m.form.Update(msg)
 	if f, ok := form.(*huh.Form); ok {
 		m.form = f
+	}
+	if m.form.State == huh.StateCompleted {
+		return m, tea.Quit
 	}
 	return m, cmd
 }
@@ -116,8 +119,8 @@ func createResource(m Model) string {
 
 	if resource == "Lambda" {
 		s += fmt.Sprintf("Using runtime %s on %s\n", runtime, architecture)
-		templateExist := doesTemplateExist()
-		if templateExist {
+		msg := doesTemplateExist()
+		if msg.(bool) {
 			s += "Using existing template.yaml\n"
 		} else {
 			s += "Creating new template.yaml\n"
@@ -132,7 +135,7 @@ func createResource(m Model) string {
 	return s
 }
 
-func doesTemplateExist() bool {
+func doesTemplateExist() tea.Msg {
 	_, err := os.Open("template.yaml")
 	return !os.IsNotExist(err)
 }
@@ -157,6 +160,5 @@ func main() {
 	_, err := p.Run()
 	if err != nil {
 		fmt.Printf("Shit! It broke: %v", err)
-		os.Exit(1)
 	}
 }
