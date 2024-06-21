@@ -6,96 +6,104 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	yaml "gopkg.in/yaml.v2"
 )
 
+type Template struct {
+	AWSTemplateFormatVersion string `yaml:"AWSTemplateFormatVersion"`
+	Transform                string `yaml:"Transform"`
+	Description              string `yaml:"Description"`
+}
+
 type Model struct {
-	form *huh.Form
+	form          *huh.Form
+	architecture  string
+	projectName   string
+	resource      string
+	resourceName  string
+	runtime       string
+	templateExist bool
 }
 
 func NewModel() Model {
-	var architecture string
-	var name string
-	var projectName string
-	var resource string
-	var runtime string
-	templateExist := doesTemplateExist()
+	m := Model{}
+	m.templateExist = doesTemplateExist().(bool)
 
-	return Model{
-		form: huh.NewForm(
-			huh.NewGroup(
-				huh.NewNote().
-					Title("Stratus").
-					Description("Stratus simplifies serverless app development on AWS.\n\n").
-					Next(true).
-					NextLabel("Start"),
-			),
-			huh.NewGroup(
-				huh.NewInput().
-					Key("projectName").
-					Title("Project name").
-					Value(&projectName).
-					Validate(
-						func(s string) error {
-							if s == "" {
-								return fmt.Errorf("project name is required")
-							}
-							return nil
-						},
-					),
-			).WithHideFunc(func() bool {
-				return templateExist.(bool)
-			}),
-			huh.NewGroup(
-				huh.NewSelect[string]().
-					Key("resource").
-					Value(&resource).
-					Options(huh.NewOptions("Lambda", "API Gateway", "DynamoDB")...).
-					Title("What serverless resource would you like to create?"),
-			),
-			huh.NewGroup(
-				huh.NewInput().
-					Key("name").
-					Title("Resource name").
-					Value(&name).
-					Validate(
-						func(s string) error {
-							if s == "" {
-								return fmt.Errorf("resource name is required")
-							}
-							return nil
-						},
-					),
-			).WithHideFunc(func() bool {
-				return resource == ""
-			}),
-			huh.NewGroup(
-				huh.NewSelect[string]().
-					Key("architecture").
-					Value(&architecture).
-					Options(huh.NewOptions("x86_64", "arm64")...).
-					Title("What architecture would you like to use?"),
-			),
-			huh.NewGroup(
-				huh.NewSelect[string]().
-					Key("runtime").
-					Value(&runtime).
-					Options(huh.NewOptions(
-						"nodejs20.x",
-						"nodejs18.x",
-						"nodejs16.x",
-						"python3.12",
-						"python3.11",
-						"python3.10",
-						"python3.9",
-						"python3.8",
-						"provided.al2023",
-					)...).
-					Title("What runtime would you like to use?"),
-			).WithHideFunc(func() bool {
-				return resource != "Lambda"
-			}),
-		).WithProgramOptions(tea.WithAltScreen()),
-	}
+	m.form = huh.NewForm(
+		huh.NewGroup(
+			huh.NewNote().
+				Title("Stratus").
+				Description("Stratus simplifies serverless app development on AWS.\n\n").
+				Next(true).
+				NextLabel("Start"),
+		),
+		huh.NewGroup(
+			huh.NewInput().
+				Key("projectName").
+				Title("Project name").
+				Value(&m.projectName).
+				Validate(
+					func(s string) error {
+						if s == "" {
+							return fmt.Errorf("project name is required")
+						}
+						return nil
+					},
+				),
+		).WithHideFunc(func() bool {
+			return m.templateExist
+		}),
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Key("resource").
+				Value(&m.resource).
+				Options(huh.NewOptions("Lambda", "API Gateway", "DynamoDB")...).
+				Title("What serverless resource would you like to create?"),
+		),
+		huh.NewGroup(
+			huh.NewInput().
+				Key("name").
+				Title("Resource name").
+				Value(&m.resourceName).
+				Validate(
+					func(s string) error {
+						if s == "" {
+							return fmt.Errorf("resource name is required")
+						}
+						return nil
+					},
+				),
+		).WithHideFunc(func() bool {
+			return m.resource == ""
+		}),
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Key("architecture").
+				Value(&m.architecture).
+				Options(huh.NewOptions("x86_64", "arm64")...).
+				Title("What architecture would you like to use?"),
+		),
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Key("runtime").
+				Value(&m.runtime).
+				Options(huh.NewOptions(
+					"nodejs20.x",
+					"nodejs18.x",
+					"nodejs16.x",
+					"python3.12",
+					"python3.11",
+					"python3.10",
+					"python3.9",
+					"python3.8",
+					"provided.al2023",
+				)...).
+				Title("What runtime would you like to use?"),
+		).WithHideFunc(func() bool {
+			return m.resource != "Lambda"
+		}),
+	).WithProgramOptions(tea.WithAltScreen())
+	return m
 }
 
 func (m Model) Init() tea.Cmd {
@@ -129,28 +137,16 @@ func (m Model) View() string {
 }
 
 func createResource(m Model) string {
-	architecture := m.form.GetString("architecture")
-	name := m.form.GetString("name")
-	resource := m.form.GetString("resource")
-	runtime := m.form.GetString("runtime")
-	s := fmt.Sprintf("Creating %s named %s\n", resource, name)
-
-	if resource == "Lambda" {
-		s += fmt.Sprintf("Using runtime %s on %s\n", runtime, architecture)
-		// msg := doesTemplateExist()
-		// if msg.(bool) {
-		// 	s += "Using existing template.yaml\n"
-		// } else {
-		// 	s += "Creating new template.yaml\n"
-		// 	err := createTemplate()
-		// 	if err != nil {
-		// 		s += fmt.Sprintf("Error creating template: %v\n", err)
-		// 		return s
-		// 	}
-		// }
+	if m.templateExist {
+		return "Using existing template.yaml\n"
+	} else {
+		err := createTemplate()
+		if err != nil {
+			return fmt.Sprintf("Error creating template: %v\n", err)
+		}
+		s := "Created new template.yaml\n"
+		return s
 	}
-	s += "Done!"
-	return s
 }
 
 func doesTemplateExist() tea.Msg {
@@ -165,11 +161,16 @@ func createTemplate() error {
 	}
 	defer f.Close()
 
-	_, err = f.WriteString("AWSTemplateFormatVersion: '2010-09-09'\n")
+	encoder := yaml.NewEncoder(f)
+
+	err = encoder.Encode(Template{
+		AWSTemplateFormatVersion: "2010-09-09",
+		Transform:                "AWS::Serverless-2016-10-31",
+		Description:              "Generated by Stratus",
+	})
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
