@@ -15,8 +15,10 @@ type Model struct {
 func NewModel() Model {
 	var architecture string
 	var name string
+	var projectName string
 	var resource string
 	var runtime string
+	templateExist := doesTemplateExist()
 
 	return Model{
 		form: huh.NewForm(
@@ -27,6 +29,22 @@ func NewModel() Model {
 					Next(true).
 					NextLabel("Start"),
 			),
+			huh.NewGroup(
+				huh.NewInput().
+					Key("projectName").
+					Title("Project name").
+					Value(&projectName).
+					Validate(
+						func(s string) error {
+							if s == "" {
+								return fmt.Errorf("project name is required")
+							}
+							return nil
+						},
+					),
+			).WithHideFunc(func() bool {
+				return templateExist.(bool)
+			}),
 			huh.NewGroup(
 				huh.NewSelect[string]().
 					Key("resource").
@@ -119,17 +137,17 @@ func createResource(m Model) string {
 
 	if resource == "Lambda" {
 		s += fmt.Sprintf("Using runtime %s on %s\n", runtime, architecture)
-		msg := doesTemplateExist()
-		if msg.(bool) {
-			s += "Using existing template.yaml\n"
-		} else {
-			s += "Creating new template.yaml\n"
-			err := createTemplate()
-			if err != nil {
-				s += fmt.Sprintf("Error creating template: %v\n", err)
-				return s
-			}
-		}
+		// msg := doesTemplateExist()
+		// if msg.(bool) {
+		// 	s += "Using existing template.yaml\n"
+		// } else {
+		// 	s += "Creating new template.yaml\n"
+		// 	err := createTemplate()
+		// 	if err != nil {
+		// 		s += fmt.Sprintf("Error creating template: %v\n", err)
+		// 		return s
+		// 	}
+		// }
 	}
 	s += "Done!"
 	return s
